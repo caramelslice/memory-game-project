@@ -10,9 +10,13 @@ let timerOn = false;
 const newBoard = document.querySelector("#board");
 const newDeck = document.querySelector(".deck");
 let timer = document.getElementById('timer');
-let seconds = 0, minutes = 0, hours = 0
+let seconds = 0, minutes = 0, hours = 0, t;
+const stars = document.querySelector(".stars");
 let totalTime = document.querySelector("#timer").innerHTML;
-const stars = document.querySelector(".stars")
+let displayTimer = document.querySelector("#timer");
+let indexList = [];
+let index__node;
+
 /*
  * Display the cards on the page
  *   - shuffle the list of cards using the provided "shuffle" method below
@@ -84,27 +88,51 @@ function respondToTheClick(evt) {
 
 	addCardtoStack(evt.target.innerHTML);
 
-	if ((openCardsList.length>0)) {
-		if((timerOn===false)) {
-			timerOn = showTimer();
-			timerOn = true;
-		}
+	if(timerOn==false) {
+		console.log("starting timer");
+		// timerOn = showTimer();
+		timerOn = setTimeout(showTimer(), 1000);
+		timerOn = true;
 	}
+
+
+	//start fixing the same card shouldn't equal. Make sure the same card aren't being clicked
+	const nodes = Array.prototype.slice.call(document.querySelectorAll('ul')[1].children);
+
+	const nodeIndex = nodes.indexOf(evt.target);
+
+	indexList.push(nodeIndex);
+
+	if((indexList.filter(item => item == nodeIndex).length == 2)){
+		console.log("diupliate cards");
+		indexList.pop();
+		indexList.pop();
+		console.log("index list after removing duplicates");
+		console.log(indexList);
+		removeCards();
+	} 
+
 
 	//checking whether there are two cards in the list
 	if (openCardsList.length>0 && openCardsList.length%2 == 0) {
 		//if the two cards are equal
+
 		if(openCardsList.filter(item => item == evt.target.innerHTML).length == 2) {
+
+
 			//lock in the correct cards
 			lockCorrectCards(evt.target.childNodes[1]);
 
 			if (openCardsList.length == 16) {
 				//If all 16 cards have been guessed, show the congratulations dialog. 
+				clearInterval(timerOn);
+				timerOn = false;
 				showDialog();
 			}
 		} 
 		else {
 			//If the two cards aren't equal. remove the last two cards from the screen.
+
 			setTimeout(removeCards, 500);
 		}
 	} 
@@ -121,6 +149,8 @@ function showCard(card) {
 
 function removeCards() {
 	//to do here. loop through openCardsList, select class
+			indexList.pop();
+		indexList.pop();
 	for (let i=0; i<openCardsList.length; i++) {
 		c = "." + openCardsList[i].split('\"')[1].split(' ')[1];
 		nodeList = document.querySelectorAll(c);
@@ -184,17 +214,10 @@ function moveCounter() {
 }
 
 
-
 function showTimer() {
 
-	let displayTimer = document.querySelector("#timer"),
-	start = document.querySelector("#board"),
-	restart = document.querySelector(".restart"),
-	//to do: stop = the button on modal box. or listen out for modal pop up. 
-	seconds = 0, minutes = 0, hours =0,
-	t;
 
-	function add() {
+	timerOn = setInterval(function() {
 		seconds++;
 		if(seconds >= 60) {
 			seconds = 0;
@@ -207,45 +230,72 @@ function showTimer() {
 
 		displayTimer.textContent = (hours ? (hours > 9 ? hours : "0" + hours) : "00") + ":" + (minutes ? (minutes > 9 ? minutes : "0" + minutes) : "00") + ":" + (seconds > 9 ? seconds : "0" + seconds);
 
-		timer();
+		// timer();
+	}, 1000);
 
-	}//close add()
 
-	function timer() {
-		t = setTimeout(add, 1000);
-		// console.log("hi");
-	}
-
-	start.onclick = timer;
-
-	restart.onclick = function() {
-		clearTimeout(t);
-	    displayTimer.textContent = "00:00:00";
-	    seconds = 0; minutes = 0; hours = 0;
-	}
 
 
 }//close showeTimer()
 
 
+
+
 function showDialog() { 
-  document.querySelector("#myDialog").innerHTML = "Congratulations! You won. Your skill level is " + 
-  stars.children.length + 
-  ". It took you " + totalTime + " to complete this game." + 
-  ". Press Escape and reload the board to play again.";
-  document.querySelector("#myDialog").showModal();
+	const dialog = document.createElement("Dialog");
+	dialog.setAttribute("id", "myDialog");
+	dialog.innerHTML = "Congratulations! You won. Your skill level is " + 
+	stars.children.length + 
+	". It took you " + displayTimer.innerHTML + " to complete this game." + 
+	". Press Escape and reload the board to play again.";
+	document.body.appendChild(dialog);
+	
+	const replayBtn = document.createElement("Button");
+	replayBtn.setAttribute("id", "replay");
+	replayBtn.innerHTML = "Play again";
+	dialog.appendChild(replayBtn);
+
+
+	document.querySelector("#replay").addEventListener("click", function() 
+		{console.log("replaying game");
+
+		dialog.style.display = "none";
+		dialog.remove();
+		
+				// clearInterval(timerOn);
+				// timerOn = false;
+
+	reloadGame();
+
+		})
+
+	dialog.showModal();
 } 
 
 
-document.querySelector(".restart").addEventListener("click", reloadGame);
 
 function reloadGame() {
+	console.log("reloading game");
+
+		
+	// clearInterval(timerOn);
+	openCardsList = [];
+	indexList = [];
 	createBoard();
-	totalTime.innerHTML = "00:00:00";
+	clearInterval(timerOn);
+	timerOn = false;
+	seconds = 0, minutes = 0, hours = 0;
+	displayTimer.textContent = "00:00:00";
+	// showDialog = false;
+	
 	resetStars();
 	startListening();
 	moveCounter();
+
 }
+
+document.querySelector(".restart").addEventListener("click", reloadGame);
+
 
 function resetStars() {
 	stars.innerHTML="";
